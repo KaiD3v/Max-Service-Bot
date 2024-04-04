@@ -1,6 +1,0 @@
-2024/04/04-13:23:47.881 4b60 Reusing MANIFEST C:\Users\kaikr\Documents\Projetos\WhatsBot\tokens\sessionName\Default\Local Storage\leveldb/MANIFEST-000001
-2024/04/04-13:23:47.883 4b60 Recovering log #11
-2024/04/04-13:23:47.885 4b60 Reusing old log C:\Users\kaikr\Documents\Projetos\WhatsBot\tokens\sessionName\Default\Local Storage\leveldb/000011.log 
-2024/04/04-13:25:49.245 1058 Level-0 table #14: started
-2024/04/04-13:25:49.251 1058 Level-0 table #14: 15588 bytes OK
-2024/04/04-13:25:49.253 1058 Delete type=0 #11
