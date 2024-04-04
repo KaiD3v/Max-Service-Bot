@@ -1,56 +1,84 @@
 const fs = require("fs");
-const wppconnect = require("@wppconnect-team/wppconnect");
+const WPP = require("@wppconnect-team/wppconnect");
 
-wppconnect
-  .create({
-    session: "sessionName",
-    catchQR: (base64Qr, asciiQR) => {
-      console.log(asciiQR); // Optional to log the QR in the terminal
-      var matches = base64Qr.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/),
-        response = {};
+const DATA_DIRECTORY = "contactMessages"; // Diretório para armazenar os dados das mensagens por contato
 
-      if (matches.length !== 3) {
-        return new Error("Invalid input string");
+let clientInstance; // Variável para armazenar a instância do cliente do WhatsApp
+
+WPP.create({
+  session: "sessionName",
+  catchQR: (base64Qr, asciiQR) => {
+    console.log(asciiQR); // Opcional para registrar o QR no terminal
+    const matches = base64Qr.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) {
+      throw new Error("Invalid input string");
+    }
+    const response = {
+      type: matches[1],
+      data: Buffer.from(matches[2], "base64"),
+    };
+    fs.writeFile("out.png", response.data, "binary", (err) => {
+      if (err) {
+        console.error(err);
       }
-      response.type = matches[1];
-      response.data = new Buffer.from(matches[2], "base64");
+    });
+  },
+  logQR: false,
+})
+.then((client) => {
+  clientInstance = client; // Armazena a instância do cliente
+  start(client);
+})
+.catch((error) => console.log(error));
 
-      var imageBuffer = response;
-      require("fs").writeFile(
-        "out.png",
-        imageBuffer["data"],
-        "binary",
-        function (err) {
-          if (err != null) {
-            console.log(err);
-          }
-        }
-      );
-    },
-    logQR: false,
-  })
-  .then((client) => start(client))
-  .catch((error) => console.log(error));
+function getCurrentDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
-function start(client) {
-  client.onMessage((message) => {
-    if (
-      message.body.toLowerCase() === "oi" ||
-      message.body.toLowerCase() === "olá" ||
-      message.body.toLowerCase() === "hello"
-    ) {
-      client
-        .reply(
+function isFirstMessageOfDay(contactId) {
+  try {
+    const contactMessagesDir = `${DATA_DIRECTORY}/${contactId}`;
+    if (!fs.existsSync(contactMessagesDir)) {
+      // Se o diretório do contato não existir, é a primeira mensagem do dia para esse contato
+      fs.mkdirSync(contactMessagesDir, { recursive: true });
+      return true;
+    }
+
+    const lastMessageDate = fs.readFileSync(`${contactMessagesDir}/lastMessageDate.txt`, "utf8").trim();
+    return lastMessageDate !== getCurrentDate();
+  } catch (error) {
+    console.error("Erro ao verificar se é a primeira mensagem do dia para o contato:", error);
+    return false;
+  }
+}
+
+async function start(client) {
+  client.onMessage(async (message) => {
+    try {
+      // Se a mensagem for de um grupo, ignora
+      if (message.isGroupMsg) {
+        console.log("Mensagem recebida de um grupo. Ignorando...");
+        return;
+      }
+
+      const contactId = message.from; // Assume-se que o ID do contato seja o mesmo que o número do telefone
+      // Verifica se é a primeira mensagem do dia para o contato
+      if (isFirstMessageOfDay(contactId)) {
+        await client.reply(
           message.from,
-          "Olá! Como posso te ajudar?",
-          message.id.toString()
-        )
-        .then((result) => {
-          console.log("Result: ", result); // retorna o objeto de sucesso
-        })
-        .catch((erro) => {
-          console.error("Erro ao enviar: ", erro); // retorna o objeto de erro
-        });
+          "Bom dia! Estou indisponível no momento, te responderei assim que possível."
+        );
+        // Atualiza o arquivo de dados com a nova data
+        const contactMessagesDir = `${DATA_DIRECTORY}/${contactId}`;
+        fs.writeFileSync(`${contactMessagesDir}/lastMessageDate.txt`, getCurrentDate());
+        console.log("Mensagem de bom dia enviada.");
+      }
+    } catch (error) {
+      console.error("Erro ao processar a mensagem:", error);
     }
     console.log(message.body);
   });
