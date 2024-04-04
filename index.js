@@ -25,11 +25,11 @@ WPP.create({
   },
   logQR: false,
 })
-.then((client) => {
-  clientInstance = client; // Armazena a instância do cliente
-  start(client);
-})
-.catch((error) => console.log(error));
+  .then((client) => {
+    clientInstance = client; // Armazena a instância do cliente
+    start(client);
+  })
+  .catch((error) => console.log(error));
 
 function getCurrentDate() {
   const now = new Date();
@@ -48,10 +48,15 @@ function isFirstMessageOfDay(contactId) {
       return true;
     }
 
-    const lastMessageDate = fs.readFileSync(`${contactMessagesDir}/lastMessageDate.txt`, "utf8").trim();
+    const lastMessageDate = fs
+      .readFileSync(`${contactMessagesDir}/lastMessageDate.txt`, "utf8")
+      .trim();
     return lastMessageDate !== getCurrentDate();
   } catch (error) {
-    console.error("Erro ao verificar se é a primeira mensagem do dia para o contato:", error);
+    console.error(
+      "Erro ao verificar se é a primeira mensagem do dia para o contato:",
+      error
+    );
     return false;
   }
 }
@@ -61,7 +66,9 @@ async function start(client) {
     try {
       // Se a mensagem for de um grupo ou se for para o status, ignora
       if (message.isGroupMsg || message.isStatusMsg) {
-        console.log("Mensagem recebida de um grupo ou para o status. Ignorando...");
+        console.log(
+          "Mensagem recebida de um grupo ou para o status. Ignorando..."
+        );
         return;
       }
 
@@ -70,12 +77,35 @@ async function start(client) {
       if (isFirstMessageOfDay(contactId)) {
         await client.reply(
           message.from,
-          "Bom dia! Selecione abaixo os planos "
+          `Bom dia! Gostaria de qual tipo de serviço?`
+        );
+        await client.sendText(
+          message.from,
+          `1- Cardápio \n2- Horário de funcionamento\n3- Promoções`
         );
         // Atualiza o arquivo de dados com a nova data
         const contactMessagesDir = `${DATA_DIRECTORY}/${contactId}`;
-        fs.writeFileSync(`${contactMessagesDir}/lastMessageDate.txt`, getCurrentDate());
+        fs.writeFileSync(
+          `${contactMessagesDir}/lastMessageDate.txt`,
+          getCurrentDate()
+        );
         console.log("Mensagem de bom dia enviada.");
+      }
+
+      if (message.body === "1") {
+        await client.sendText(
+          message.from,
+          `Cardápio: \n1. Banana frita \n2. Acelora \n3. Cavalos`
+        );
+      }
+      if (message.body === "2") {
+        await client.sendText(
+          message.from,
+          `Horário de funcionamento: \n00:00 às 23:59, segunda a segunda, 24/7`
+        );
+      }
+      if (message.body === "3") {
+        await client.sendText(message.from, `Promoções: \nRato frito, R$0,99`);
       }
     } catch (error) {
       console.error("Erro ao processar a mensagem:", error);
