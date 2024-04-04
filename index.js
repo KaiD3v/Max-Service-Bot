@@ -59,9 +59,9 @@ function isFirstMessageOfDay(contactId) {
 async function start(client) {
   client.onMessage(async (message) => {
     try {
-      // Se a mensagem for de um grupo, ignora
-      if (message.isGroupMsg) {
-        console.log("Mensagem recebida de um grupo. Ignorando...");
+      // Se a mensagem for de um grupo ou se for para o status, ignora
+      if (message.isGroupMsg || message.isStatusMsg) {
+        console.log("Mensagem recebida de um grupo ou para o status. Ignorando...");
         return;
       }
 
@@ -70,7 +70,7 @@ async function start(client) {
       if (isFirstMessageOfDay(contactId)) {
         await client.reply(
           message.from,
-          "Bom dia! Estou indisponível no momento, te responderei assim que possível."
+          "Bom dia! Selecione abaixo os planos "
         );
         // Atualiza o arquivo de dados com a nova data
         const contactMessagesDir = `${DATA_DIRECTORY}/${contactId}`;
